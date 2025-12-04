@@ -19,6 +19,8 @@ export async function setArrived(id: string, arrived: boolean): Promise<void> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ arrived }),
     });
-  } catch {}
+  } catch {
+    return;
+  }
 }
 

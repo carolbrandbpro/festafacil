@@ -54,17 +54,21 @@ const Index = () => {
   useEffect(() => {
     try {
       localStorage.setItem("isola.guests", JSON.stringify(guests));
-    } catch {}
+    } catch {
+      void 0;
+    }
   }, [guests]);
 
   useEffect(() => {
     try {
       localStorage.setItem("isola.title", eventTitle);
-    } catch {}
+    } catch {
+      void 0;
+    }
   }, [eventTitle]);
 
   useEffect(() => {
-    const el: any = isMobile ? contentRef.current : window;
+    const el = (isMobile ? contentRef.current : window) as HTMLDivElement | (Window & typeof globalThis) | null;
     if (!el) return;
     const onScroll = () => {
       const y = isMobile ? (contentRef.current?.scrollTop || 0) : window.scrollY;

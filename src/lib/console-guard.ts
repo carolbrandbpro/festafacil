@@ -1,11 +1,12 @@
-function containsPhone(x: any): boolean {
+function containsPhone(x: unknown): boolean {
   try {
     if (!x) return false;
     if (Array.isArray(x)) return x.some((i) => containsPhone(i));
-    if (typeof x === "object") {
-      if (Object.prototype.hasOwnProperty.call(x, "phone") && x.phone) return true;
-      for (const k of Object.keys(x)) {
-        if (containsPhone((x as any)[k])) return true;
+    if (typeof x === "object" && x !== null) {
+      const obj = x as Record<string, unknown>;
+      if (Object.prototype.hasOwnProperty.call(obj, "phone") && obj.phone) return true;
+      for (const k of Object.keys(obj)) {
+        if (containsPhone(obj[k])) return true;
       }
     }
     return false;
@@ -14,7 +15,7 @@ function containsPhone(x: any): boolean {
   }
 }
 
-function shouldBlock(args: any[]): boolean {
+function shouldBlock(args: unknown[]): boolean {
   try {
     return args.some((a) => containsPhone(a));
   } catch {
@@ -23,12 +24,19 @@ function shouldBlock(args: any[]): boolean {
 }
 
 if (import.meta.env.PROD) {
-  const wrap = (fn: any) => (...args: any[]) => {
+  const originalLog = console.log;
+  const originalTable = console.table;
+  const originalDir = console.dir;
+  console.log = ((...args: Parameters<typeof console.log>) => {
     if (shouldBlock(args)) return;
-    fn(...args);
-  };
-  console.log = wrap(console.log);
-  console.table = wrap(console.table);
-  console.dir = wrap(console.dir);
+    originalLog(...args);
+  }) as typeof console.log;
+  console.table = ((...args: Parameters<typeof console.table>) => {
+    if (shouldBlock(args)) return;
+    originalTable(...args);
+  }) as typeof console.table;
+  console.dir = ((...args: Parameters<typeof console.dir>) => {
+    if (shouldBlock(args)) return;
+    originalDir(...args);
+  }) as typeof console.dir;
 }
-
