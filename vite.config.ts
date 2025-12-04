@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: true,
     port: Number(process.env.PORT) || 8080,
-    allowedHosts: (process.env.ALLOWED_HOSTS || "isola70.onrender.com")
+    allowedHosts: (process.env.ALLOWED_HOSTS || "isola70.onrender.com,festa-f-cil-pro.onrender.com")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),
@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
   preview: {
     host: true,
     port: Number(process.env.PORT) || 8080,
-    allowedHosts: (process.env.ALLOWED_HOSTS || "isola70.onrender.com")
+    allowedHosts: (process.env.ALLOWED_HOSTS || "isola70.onrender.com,festa-f-cil-pro.onrender.com")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),

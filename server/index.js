@@ -5,7 +5,7 @@ import pkg from "pg";
 const { Pool } = pkg;
 const app = express();
 app.use(express.json());
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "https://isola70.onrender.com";
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "https://festa-f-cil-pro.onrender.com";
 const DEV_ORIGINS = ["http://localhost:8080", "http://127.0.0.1:8080"];
 const origins = [ALLOWED_ORIGIN, ...DEV_ORIGINS].filter(Boolean);
 app.use(cors({ origin: origins }));
