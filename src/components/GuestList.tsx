@@ -4,6 +4,7 @@ import { GuestCard } from "./GuestCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Filter, X, Printer, Download } from "lucide-react";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import {
   Select,
   SelectContent,
@@ -171,6 +172,79 @@ export function GuestList({ guests, onToggleArrived }: GuestListProps) {
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   };
 
+  const handleExportPDF = async () => {
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const margin = 36; // 0.5in
+    const lineHeight = 16;
+    const titleSize = 18;
+    const textSize = 10;
+    const pageWidth = 595.28; // A4 width pt
+    const pageHeight = 841.89; // A4 height pt
+
+    const addPage = () => doc.addPage([pageWidth, pageHeight]);
+    let page = addPage();
+    let y = pageHeight - margin;
+
+    const drawText = (text: string, x: number, size = textSize) => {
+      page.drawText(text, { x, y, size, font, color: rgb(0, 0, 0) });
+    };
+
+    const drawHeader = () => {
+      drawText(`Convidados (${filteredGuests.length})`, margin, titleSize);
+      y -= titleSize + 6;
+      const filters: string[] = [];
+      if (statusFilter !== "all") filters.push(`Status: ${statusFilter}`);
+      if (accommodationFilter !== "all") filters.push(`Hospedagem: ${accommodationFilter}`);
+      if (groupFilter !== "all") filters.push(`Grupo: ${groupFilter}`);
+      if (arrivedFilter !== "all") filters.push(`Chegada: ${arrivedFilter === "yes" ? "Chegou" : "Não chegou"}`);
+      drawText(filters.length ? `Filtros: ${filters.join("; ")}` : "Sem filtros", margin);
+      y -= lineHeight;
+      // table header
+      drawText("Nome", margin);
+      drawText("Convite", margin + 160);
+      drawText("Grupo", margin + 280);
+      drawText("Hospedagem", margin + 340);
+      drawText("Status", margin + 440);
+      drawText("Chegada", margin + 510);
+      y -= lineHeight;
+      page.drawLine({ start: { x: margin, y }, end: { x: pageWidth - margin, y }, thickness: 0.5, color: rgb(0.7, 0.7, 0.7) });
+      y -= 6;
+    };
+
+    const ensureSpace = () => {
+      if (y < margin + 2 * lineHeight) {
+        page = addPage();
+        y = pageHeight - margin;
+        drawHeader();
+      }
+    };
+
+    drawHeader();
+    for (const g of filteredGuests) {
+      ensureSpace();
+      drawText(g.name, margin);
+      drawText(g.inviteName, margin + 160);
+      drawText(g.group, margin + 280);
+      drawText(g.accommodation || "", margin + 340);
+      drawText(g.status, margin + 440);
+      drawText(g.arrived ? "Sim" : "Não", margin + 510);
+      y -= lineHeight;
+    }
+
+    const pdfBytes = await doc.save();
+    const blob = new Blob([pdfBytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `convidados-${date}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -190,6 +264,10 @@ export function GuestList({ guests, onToggleArrived }: GuestListProps) {
         <Button onClick={handleExportCSV} variant="outline" className="flex gap-2">
           <Download className="h-4 w-4" />
           Exportar CSV
+        </Button>
+        <Button onClick={handleExportPDF} variant="outline" className="flex gap-2">
+          <Download className="h-4 w-4" />
+          Exportar PDF
         </Button>
         <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
           <SheetTrigger asChild>
