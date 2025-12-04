@@ -3,7 +3,7 @@ import { Guest, ConfirmationStatus, Accommodation, GuestGroup } from "@/types/gu
 import { GuestCard } from "./GuestCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, X, Printer, Download } from "lucide-react";
+import { Search, Filter, X, Download } from "lucide-react";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import {
   Select,
@@ -17,6 +17,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 interface GuestListProps {
   guests: Guest[];
   onToggleArrived?: (id: string, arrived: boolean) => void;
+  eventTitle?: string;
 }
 
 const accommodations: Accommodation[] = [
@@ -31,7 +32,7 @@ const accommodations: Accommodation[] = [
 const statuses: ConfirmationStatus[] = ["Confirmado", "Pendente", "Não comparecerá"];
 const groups: GuestGroup[] = ["Família", "Amigos"];
 
-export function GuestList({ guests, onToggleArrived }: GuestListProps) {
+export function GuestList({ guests, onToggleArrived, eventTitle }: GuestListProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [accommodationFilter, setAccommodationFilter] = useState<string>("all");
@@ -66,111 +67,7 @@ export function GuestList({ guests, onToggleArrived }: GuestListProps) {
     setArrivedFilter("all");
   };
 
-  const handlePrint = () => {
-    const filters: string[] = [];
-    if (statusFilter !== "all") filters.push(`Status: ${statusFilter}`);
-    if (accommodationFilter !== "all") filters.push(`Hospedagem: ${accommodationFilter}`);
-    if (groupFilter !== "all") filters.push(`Grupo: ${groupFilter}`);
-    if (arrivedFilter !== "all") filters.push(`Chegada: ${arrivedFilter === "yes" ? "Chegou" : "Não chegou"}`);
-
-    const rows = filteredGuests
-      .map(
-        (g) =>
-          `<tr>
-            <td>${g.name}</td>
-            <td>${g.inviteName}</td>
-            <td>${g.group}</td>
-            <td>${g.accommodation || "-"}</td>
-            <td>${g.status}</td>
-            <td>${g.arrived ? "Sim" : "Não"}</td>
-          </tr>`
-      )
-      .join("");
-
-    const html = `<!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>Convidados</title>
-        <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif; padding: 24px; color: #111; }
-          h1 { margin: 0 0 8px; font-size: 20px; }
-          p { margin: 0 0 16px; color: #555; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; }
-          th { background: #f7f7f7; text-align: left; }
-          @media print { @page { margin: 12mm; } }
-        </style>
-      </head>
-      <body>
-        <h1>Convidados (${filteredGuests.length})</h1>
-        <p>${filters.length ? `Filtros: ${filters.join("; ")}` : "Sem filtros"}</p>
-        <table>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Convite</th>
-              <th>Grupo</th>
-              <th>Hospedagem</th>
-              <th>Status</th>
-              <th>Chegada</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-        <script>try { window.print(); } catch(e) {} setTimeout(() => { try { window.close(); } catch(e) {} }, 500);</script>
-      </body>
-    </html>`;
-
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank", "noopener,noreferrer");
-    if (!w) {
-      const iframe = document.createElement("iframe");
-      iframe.style.position = "fixed";
-      iframe.style.right = "0";
-      iframe.style.bottom = "0";
-      iframe.style.width = "0";
-      iframe.style.height = "0";
-      iframe.style.border = "0";
-      iframe.src = url;
-      document.body.appendChild(iframe);
-      iframe.onload = () => {
-        try {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-        } catch {}
-        setTimeout(() => {
-          URL.revokeObjectURL(url);
-          document.body.removeChild(iframe);
-        }, 1000);
-      };
-    } else {
-      // URL será revogado após um pequeno atraso para garantir que a página carregue
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    }
-  };
-
-  const handleExportCSV = () => {
-    const headers = ["Nome", "Convite", "Grupo", "Hospedagem", "Status", "Chegada"];
-    const escape = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const lines = filteredGuests.map((g) =>
-      [g.name, g.inviteName, g.group, g.accommodation || "", g.status, g.arrived ? "Sim" : "Não"]
-        .map(escape)
-        .join(";")
-    );
-    const csv = [headers.join(";"), ...lines].join("\n");
-    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const date = new Date().toISOString().slice(0, 10);
-    a.href = url;
-    a.download = `convidados-${date}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-  };
+  
 
   const handleExportPDF = async () => {
     const doc = await PDFDocument.create();
@@ -191,14 +88,20 @@ export function GuestList({ guests, onToggleArrived }: GuestListProps) {
     };
 
     const drawHeader = () => {
-      drawText(`Convidados (${filteredGuests.length})`, margin, titleSize);
+      const t = eventTitle || (localStorage.getItem("isola.title") || "Evento");
+      const date = new Date().toLocaleDateString("pt-BR");
+      drawText(String(t), margin, titleSize);
       y -= titleSize + 6;
+      drawText(`Data: ${date}`, margin);
+      y -= lineHeight;
       const filters: string[] = [];
       if (statusFilter !== "all") filters.push(`Status: ${statusFilter}`);
       if (accommodationFilter !== "all") filters.push(`Hospedagem: ${accommodationFilter}`);
       if (groupFilter !== "all") filters.push(`Grupo: ${groupFilter}`);
       if (arrivedFilter !== "all") filters.push(`Chegada: ${arrivedFilter === "yes" ? "Chegou" : "Não chegou"}`);
       drawText(filters.length ? `Filtros: ${filters.join("; ")}` : "Sem filtros", margin);
+      y -= lineHeight;
+      drawText(`Convidados (${filteredGuests.length})`, margin);
       y -= lineHeight;
       // table header
       drawText("Nome", margin);
@@ -257,14 +160,7 @@ export function GuestList({ guests, onToggleArrived }: GuestListProps) {
             className="pl-9"
           />
         </div>
-        <Button onClick={handlePrint} variant="outline" className="flex gap-2">
-          <Printer className="h-4 w-4" />
-          Imprimir
-        </Button>
-        <Button onClick={handleExportCSV} variant="outline" className="flex gap-2">
-          <Download className="h-4 w-4" />
-          Exportar CSV
-        </Button>
+        
         <Button onClick={handleExportPDF} variant="outline" className="flex gap-2">
           <Download className="h-4 w-4" />
           Exportar PDF

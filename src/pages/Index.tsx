@@ -113,6 +113,7 @@ const Index = () => {
         ) : activeTab === "guests" ? (
           <GuestList
             guests={guests}
+            eventTitle={eventTitle}
             onToggleArrived={async (id, arrived) => {
               setGuests((prev) => prev.map((g) => (g.id === id ? { ...g, arrived } : g)));
               await setArrived(id, arrived);
