@@ -5,6 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  base: "/festa-f-cil-pro/",
   server: {
     host: true,
     port: Number(process.env.PORT) || 8080,
