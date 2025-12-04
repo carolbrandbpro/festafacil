@@ -117,15 +117,37 @@ export function GuestList({ guests, onToggleArrived }: GuestListProps) {
           </thead>
           <tbody>${rows}</tbody>
         </table>
-        <script>window.print(); setTimeout(() => window.close(), 300);</script>
+        <script>try { window.print(); } catch(e) {} setTimeout(() => { try { window.close(); } catch(e) {} }, 500);</script>
       </body>
     </html>`;
 
-    const w = window.open("", "_blank", "noopener,noreferrer");
-    if (!w) return;
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, "_blank", "noopener,noreferrer");
+    if (!w) {
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      iframe.src = url;
+      document.body.appendChild(iframe);
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch {}
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+          document.body.removeChild(iframe);
+        }, 1000);
+      };
+    } else {
+      // URL será revogado após um pequeno atraso para garantir que a página carregue
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
   };
 
   return (
@@ -140,7 +162,7 @@ export function GuestList({ guests, onToggleArrived }: GuestListProps) {
             className="pl-9"
           />
         </div>
-        <Button onClick={handlePrint} variant="outline" className="hidden sm:flex gap-2">
+        <Button onClick={handlePrint} variant="outline" className="flex gap-2">
           <Printer className="h-4 w-4" />
           Imprimir
         </Button>
